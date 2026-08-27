@@ -9,7 +9,7 @@ app.get("/", (req, res) => res.send("Bot 24/7 rejimda ishlayapti!"));
 app.listen(port, () => console.log(`Server ${port}-portda ishlamoqda`));
 
 // Botni ishga tushirish (Bot tokeningizni o'zgartirmang)
-const bot = new Bot("YOUR_TELEGRAM_BOT_TOKEN");
+const bot = new Bot("8927006209:AAEq35XwstN9ywwBlRBMcRtrQ9j337mNfSU");
 
 // Asosiy tugmalar paneli
 function getMainMenu() {
