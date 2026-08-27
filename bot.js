@@ -8,7 +8,7 @@ const port = process.env.PORT || 3000;
 app.get("/", (req, res) => res.send("Bot 24/7 rejimda ishlayapti!"));
 app.listen(port, () => console.log(`Server ${port}-portda ishlamoqda`));
 
-// Botni ishga tushirish (Bot tokeningizni o'zgartirmang)
+// Botni ishga tushirish
 const bot = new Bot("8927006209:AAEq35XwstN9ywwBlRBMcRtrQ9j337mNfSU");
 
 // Asosiy tugmalar paneli
@@ -50,19 +50,24 @@ bot.callbackQuery("mb_rates", async (ctx) => {
   }
 });
 
-// 2. Kriptovalyuta kurslari (CoinGecko API)
+// 2. Kriptovalyuta kurslari (Binance & KuCoin barqaror API)
 bot.callbackQuery("crypto_rates", async (ctx) => {
   try {
-    const res = await axios.get(
-      "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,the-open-network,tether&vs_currencies=usd"
-    );
-    const data = res.data;
+    const [btcRes, ethRes, tonRes] = await Promise.all([
+      axios.get("https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT"),
+      axios.get("https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT"),
+      axios.get("https://api.kucoin.com/api/v1/market/orderbook/level1?symbol=TON-USDT")
+    ]);
+
+    const btc = parseFloat(btcRes.data.price).toLocaleString("en-US", { maximumFractionDigits: 2 });
+    const eth = parseFloat(ethRes.data.price).toLocaleString("en-US", { maximumFractionDigits: 2 });
+    const ton = parseFloat(tonRes.data.data.price).toFixed(2);
 
     let msg = `🪙 **Real vaqtdagi Kriptovalyuta kurslari ($):**\n\n`;
-    msg += `🪙 **Bitcoin (BTC):** $${data.bitcoin.usd.toLocaleString()}\n`;
-    msg += `🔷 **Ethereum (ETH):** $${data.ethereum.usd.toLocaleString()}\n`;
-    msg += `💎 **TON Coin (TON):** $${data["the-open-network"].usd}\n`;
-    msg += `💵 **Tether (USDT):** $${data.tether.usd}\n`;
+    msg += `🪙 **Bitcoin (BTC):** $${btc}\n`;
+    msg += `🔷 **Ethereum (ETH):** $${eth}\n`;
+    msg += `💎 **TON Coin (TON):** $${ton}\n`;
+    msg += `💵 **Tether (USDT):** $1.00\n`;
 
     await ctx.reply(msg, { parse_mode: "Markdown", reply_markup: getMainMenu() });
   } catch (err) {
@@ -70,16 +75,16 @@ bot.callbackQuery("crypto_rates", async (ctx) => {
   }
 });
 
-// 3. Valyuta statistikasi va dinamikasi
+// 3. Valyuta statistikasi
 bot.callbackQuery("stats", async (ctx) => {
   try {
     const response = await axios.get("https://cbu.uz/uz/arkhiv-kursov-valyut/json/");
     const usd = response.data.find((c) => c.Ccy === "USD");
     
-    let state = usd.Diff > 0 ? "📈 Osmoqda (O'sish tendensiyasi)" : "📉 Tushmoqda";
+    let state = usd.Diff > 0 ? "📈 O'smoqda (O'sish tendensiyasi)" : "📉 Tushmoqda";
     let msg = `📊 **AQSH Dollari Dinamikasi:**\n\n`;
     msg += `📌 Bugungi kurs: **${usd.Rate} so'm**\n`;
-    msg += `🔄 Oxirgi o'zgarish: **${usd.Diff} so me**\n`;
+    msg += `🔄 Oxirgi o'zgarish: **${usd.Diff} so'm**\n`;
     msg += `Holat: **${state}**\n`;
     msg += `Sana: **${usd.Date}**`;
 
@@ -89,7 +94,7 @@ bot.callbackQuery("stats", async (ctx) => {
   }
 });
 
-// Kalkulyator haqida ko'rsatma
+// Kalkulyator ko'rsatmasi
 bot.callbackQuery("calc_info", async (ctx) => {
   await ctx.reply(
     "🧮 **Valyuta kalkulyatori qanday ishlaydi?**\n\nSiz botga shunchaki matn ko'rinishida qiymat yozasiz:\n\n• `100 usd` -> So'mga o'giradi\n• `50 euro` -> So'mga o'giradi\n• `500000 som` -> Dollarga o'giradi",
