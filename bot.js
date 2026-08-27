@@ -23,7 +23,7 @@ function getMainMenu() {
 
 bot.command("start", async (ctx) => {
   await ctx.reply(
-    `👋 **Xush kelibsiz!**\n\nBu bot orqali nafaqat valyuta, balki ob-havo, namoz vaqtlari va Open Budget haqida ma'lumot olishingiz mumkin.\n\n👇 Quyidagi menyudan birini tanlang:`,
+    `👋 **Xush kelibsiz!**\n\nBu bot orqali rasmiy valyuta kurslari, kriptovalyutalar, ob-havo va namoz vaqtlarini bilishingiz mumkin.\n\n👇 Quyidagi menyudan birini tanlang:`,
     { parse_mode: "Markdown", reply_markup: getMainMenu() }
   );
 });
@@ -42,7 +42,7 @@ bot.callbackQuery("mb_rates", async (ctx) => {
     msg += `✍️ *Maslahat: 100 usd yoki 50 euro deb yozib kalkulyatordan foydalaning!*`;
     await ctx.reply(msg, { parse_mode: "Markdown", reply_markup: getMainMenu() });
   } catch (err) {
-    await ctx.reply("❌ Xatolik yuz berdi.");
+    await ctx.reply("❌ Valyuta kurslarini olishda xatolik yuz berdi.");
   }
 });
 
@@ -61,31 +61,31 @@ bot.callbackQuery("crypto_rates", async (ctx) => {
   await ctx.reply(`🪙 **Kripto ($):**\n\n🪙 **BTC:** $${btc}\n🔷 **ETH:** $${eth}`, { parse_mode: "Markdown", reply_markup: getMainMenu() });
 });
 
-// 3. Namoz Vaqtlari (Islom.uz API)
+// 3. Namoz Vaqtlari (100% Barqaror Aladhan API)
 bot.callbackQuery("prayer_times", async (ctx) => {
   try {
-    // Navoiy shahri misolida olingan (boshqa hudud ham qilish mumkin)
-    const res = await axios.get("https://islomapi.uz/api/present/day?region=Navoiy");
-    const data = res.data;
+    const res = await axios.get("https://api.aladhan.com/v1/timingsByCity?city=Navoi&country=Uzbekistan&method=3");
+    const timings = res.data.data.timings;
+    const date = res.data.data.date.readable;
 
-    let msg = `🕌 **Namoz Vaqtlari (Navoiy hududi uchun):**\n📅 Sana: ${data.date}\n\n`;
-    msg += `🌅 Bomdod: **${data.times.tong_saharlik}**\n`;
-    msg += `🌇 Quyosh: **${data.times.quyosh}**\n`;
-    msg += `🏞 Peshin: **${data.times.peshin}**\n`;
-    msg += `🌆 Asr: **${data.times.asr}**\n`;
-    msg += `🏙 Shom: **${data.times.shom_iftor}**\n`;
-    msg += `🌃 Xufton: **${data.times.hufton}**`;
+    let msg = `🕌 **Namoz Vaqtlari (Navoiy shahri):**\n📅 Sana: **${date}**\n\n`;
+    msg += `🌅 Bomdod (Fajr): **${timings.Fajr}**\n`;
+    msg += `🌇 Quyosh (Sunrise): **${timings.Sunrise}**\n`;
+    msg += `🏞 Peshin (Dhuhr): **${timings.Dhuhr}**\n`;
+    msg += `🌆 Asr (Asr): **${timings.Asr}**\n`;
+    msg += `🏙 Shom (Maghrib): **${timings.Maghrib}**\n`;
+    msg += `🌃 Xufton (Isha): **${timings.Isha}**`;
 
     await ctx.reply(msg, { parse_mode: "Markdown", reply_markup: getMainMenu() });
   } catch (e) {
-    await ctx.reply("❌ Namoz vaqtlarini olishda xatolik.");
+    await ctx.reply("❌ Namoz vaqtlarini olishda xatolik yuz berdi.");
   }
 });
 
 // 4. Ob-havo yordamchisi
 bot.callbackQuery("weather_info", async (ctx) => {
   await ctx.reply(
-    "⛅️ **Ob-havo ma'lumotini olish uchun shahringiz nomini inglizcha yoki lotincha yozib yuboring.**\n\nMasalan:\n• `Tashkent`\n• `Navoi`\n• `Samarkand`",
+    "⛅️ **Ob-havo ma'lumotini olish uchun shahringiz nomini inglizcha yozing:**\n\nMasalan:\n• `Navoi`\n• `Tashkent`\n• `Samarkand`",
     { parse_mode: "Markdown", reply_markup: getMainMenu() }
   );
 });
@@ -127,21 +127,20 @@ bot.on("message:text", async (ctx) => {
     }
   }
 
-  // Agar kalkulyator bo'lmasa, ob-havo ekanligini tekshiramiz (OpenWeatherMap tekin API)
+  // Ob-havo qidiruvi
   if (text.length > 2 && text.length < 20 && !calcMatch) {
     try {
-      const apiKey = "a4b5749f96b270034a7eb6d95368a183"; // Test uchun umumiy API kalit
-      const res = await axios.get(`https://api.openweathermap.org/data/2.5/weather?q=${text}&units=metric&appid=${apiKey}&lang=ru`);
+      const apiKey = "a4b5749f96b270034a7eb6d95368a183";
+      const res = await axios.get(`https://api.openweathermap.org/data/2.5/weather?q=${text}&units=metric&appid=${apiKey}`);
       const temp = res.data.main.temp;
-      const desc = res.data.weather[0].description;
       const city = res.data.name;
 
-      await ctx.reply(`⛅️ **${city} shahri ob-havosi:**\n\n🌡 Harorat: **${temp}°C**\n☁️ Holat: **${desc}**`, { parse_mode: "Markdown" });
+      await ctx.reply(`⛅️ **${city} shahri ob-havosi:**\n\n🌡 Harorat: **${temp}°C**`, { parse_mode: "Markdown" });
     } catch (e) {
-      // Agar shahar topilmasa
+      // Shahar topilmasa indamaydi
     }
   }
 });
 
-console.log("Kengaytirilgan bot ishga tushdi!");
+console.log("Bot qayta yuklandi va ishga tushdi!");
 bot.start();
