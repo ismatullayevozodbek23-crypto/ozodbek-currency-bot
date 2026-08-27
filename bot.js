@@ -50,23 +50,23 @@ bot.callbackQuery("mb_rates", async (ctx) => {
   }
 });
 
-// 2. Kriptovalyuta kurslari (Binance & KuCoin barqaror API)
+// 2. Kriptovalyuta kurslari (Faqat Binance API — 100% Barqaror)
 bot.callbackQuery("crypto_rates", async (ctx) => {
   try {
-    const [btcRes, ethRes, tonRes] = await Promise.all([
+    const [btcRes, ethRes, bnbRes] = await Promise.all([
       axios.get("https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT"),
       axios.get("https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT"),
-      axios.get("https://api.kucoin.com/api/v1/market/orderbook/level1?symbol=TON-USDT")
+      axios.get("https://api.binance.com/api/v3/ticker/price?symbol=BNBUSDT")
     ]);
 
     const btc = parseFloat(btcRes.data.price).toLocaleString("en-US", { maximumFractionDigits: 2 });
     const eth = parseFloat(ethRes.data.price).toLocaleString("en-US", { maximumFractionDigits: 2 });
-    const ton = parseFloat(tonRes.data.data.price).toFixed(2);
+    const bnb = parseFloat(bnbRes.data.price).toLocaleString("en-US", { maximumFractionDigits: 2 });
 
     let msg = `🪙 **Real vaqtdagi Kriptovalyuta kurslari ($):**\n\n`;
     msg += `🪙 **Bitcoin (BTC):** $${btc}\n`;
     msg += `🔷 **Ethereum (ETH):** $${eth}\n`;
-    msg += `💎 **TON Coin (TON):** $${ton}\n`;
+    msg += `🟡 **Binance Coin (BNB):** $${bnb}\n`;
     msg += `💵 **Tether (USDT):** $1.00\n`;
 
     await ctx.reply(msg, { parse_mode: "Markdown", reply_markup: getMainMenu() });
