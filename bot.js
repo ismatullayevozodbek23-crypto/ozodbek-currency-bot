@@ -50,29 +50,32 @@ bot.callbackQuery("mb_rates", async (ctx) => {
   }
 });
 
-// 2. Kriptovalyuta kurslari (Faqat Binance API — 100% Barqaror)
+// 2. Kriptovalyuta kurslari (Alohida xavfsiz so'rovlar)
 bot.callbackQuery("crypto_rates", async (ctx) => {
+  let btc = "Mavjud emas", eth = "Mavjud emas", bnb = "Mavjud emas";
+
   try {
-    const [btcRes, ethRes, bnbRes] = await Promise.all([
-      axios.get("https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT"),
-      axios.get("https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT"),
-      axios.get("https://api.binance.com/api/v3/ticker/price?symbol=BNBUSDT")
-    ]);
+    const res = await axios.get("https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT");
+    btc = parseFloat(res.data.price).toLocaleString("en-US", { maximumFractionDigits: 2 });
+  } catch (e) {}
 
-    const btc = parseFloat(btcRes.data.price).toLocaleString("en-US", { maximumFractionDigits: 2 });
-    const eth = parseFloat(ethRes.data.price).toLocaleString("en-US", { maximumFractionDigits: 2 });
-    const bnb = parseFloat(bnbRes.data.price).toLocaleString("en-US", { maximumFractionDigits: 2 });
+  try {
+    const res = await axios.get("https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT");
+    eth = parseFloat(res.data.price).toLocaleString("en-US", { maximumFractionDigits: 2 });
+  } catch (e) {}
 
-    let msg = `🪙 **Real vaqtdagi Kriptovalyuta kurslari ($):**\n\n`;
-    msg += `🪙 **Bitcoin (BTC):** $${btc}\n`;
-    msg += `🔷 **Ethereum (ETH):** $${eth}\n`;
-    msg += `🟡 **Binance Coin (BNB):** $${bnb}\n`;
-    msg += `💵 **Tether (USDT):** $1.00\n`;
+  try {
+    const res = await axios.get("https://api.binance.com/api/v3/ticker/price?symbol=BNBUSDT");
+    bnb = parseFloat(res.data.price).toLocaleString("en-US", { maximumFractionDigits: 2 });
+  } catch (e) {}
 
-    await ctx.reply(msg, { parse_mode: "Markdown", reply_markup: getMainMenu() });
-  } catch (err) {
-    await ctx.reply("❌ Kripto kurslarni olishda xatolik bo'ldi.");
-  }
+  let msg = `🪙 **Real vaqtdagi Kriptovalyuta kurslari ($):**\n\n`;
+  msg += `🪙 **Bitcoin (BTC):** $${btc}\n`;
+  msg += `🔷 **Ethereum (ETH):** $${eth}\n`;
+  msg += `🟡 **Binance Coin (BNB):** $${bnb}\n`;
+  msg += `💵 **Tether (USDT):** $1.00\n`;
+
+  await ctx.reply(msg, { parse_mode: "Markdown", reply_markup: getMainMenu() });
 });
 
 // 3. Valyuta statistikasi
