@@ -9,7 +9,25 @@ app.listen(port, () => console.log(`Server ishlamoqda`));
 
 const bot = new Bot("8927006209:AAEq35XwstN9ywwBlRBMcRtrQ9j337mNfSU");
 
-// Kengaytirilgan Asosiy menyu
+// Shahar nomlarini to'g'ri API formatiga o'tkazish xaritasi
+const cityMap = {
+  "farg'ona": "Fergana",
+  "fargona": "Fergana",
+  "toshkent": "Tashkent",
+  "navoiy": "Navoi",
+  "samarqand": "Samarkand",
+  "buxoro": "Bukhara",
+  "andijon": "Andijan",
+  "namangan": "Namangan",
+  "qarshi": "Karshi",
+  "nukus": "Nukus",
+  "urganch": "Urgench",
+  "jizzax": "Jizzakh",
+  "guliston": "Guliston",
+  "termez": "Termez",
+  "termiz": "Termez"
+};
+
 function getMainMenu() {
   return new InlineKeyboard()
     .text("💵 Valyuta", "mb_rates")
@@ -61,7 +79,7 @@ bot.callbackQuery("crypto_rates", async (ctx) => {
   await ctx.reply(`🪙 **Kripto ($):**\n\n🪙 **BTC:** $${btc}\n🔷 **ETH:** $${eth}`, { parse_mode: "Markdown", reply_markup: getMainMenu() });
 });
 
-// 3. Namoz Vaqtlari (100% Barqaror Aladhan API)
+// 3. Namoz Vaqtlari
 bot.callbackQuery("prayer_times", async (ctx) => {
   try {
     const res = await axios.get("https://api.aladhan.com/v1/timingsByCity?city=Navoi&country=Uzbekistan&method=3");
@@ -69,12 +87,12 @@ bot.callbackQuery("prayer_times", async (ctx) => {
     const date = res.data.data.date.readable;
 
     let msg = `🕌 **Namoz Vaqtlari (Navoiy shahri):**\n📅 Sana: **${date}**\n\n`;
-    msg += `🌅 Bomdod (Fajr): **${timings.Fajr}**\n`;
-    msg += `🌇 Quyosh (Sunrise): **${timings.Sunrise}**\n`;
-    msg += `🏞 Peshin (Dhuhr): **${timings.Dhuhr}**\n`;
-    msg += `🌆 Asr (Asr): **${timings.Asr}**\n`;
-    msg += `🏙 Shom (Maghrib): **${timings.Maghrib}**\n`;
-    msg += `🌃 Xufton (Isha): **${timings.Isha}**`;
+    msg += `🌅 Bomdod: **${timings.Fajr}**\n`;
+    msg += `🌇 Quyosh: **${timings.Sunrise}**\n`;
+    msg += `🏞 Peshin: **${timings.Dhuhr}**\n`;
+    msg += `🌆 Asr: **${timings.Asr}**\n`;
+    msg += `🏙 Shom: **${timings.Maghrib}**\n`;
+    msg += `🌃 Xufton: **${timings.Isha}**`;
 
     await ctx.reply(msg, { parse_mode: "Markdown", reply_markup: getMainMenu() });
   } catch (e) {
@@ -82,10 +100,10 @@ bot.callbackQuery("prayer_times", async (ctx) => {
   }
 });
 
-// 4. Ob-havo yordamchisi
+// 4. Ob-havo ko'rsatmasi
 bot.callbackQuery("weather_info", async (ctx) => {
   await ctx.reply(
-    "⛅️ **Ob-havo ma'lumotini olish uchun shahringiz nomini inglizcha yozing:**\n\nMasalan:\n• `Navoi`\n• `Tashkent`\n• `Samarkand`",
+    "⛅️ **Ob-havo ma'lumotini olish uchun shahringiz nomini yozing:**\n\nMasalan:\n• `Farg'ona` yoki `Fergana`\n• `Navoiy`\n• `Toshkent`",
     { parse_mode: "Markdown", reply_markup: getMainMenu() }
   );
 });
@@ -104,9 +122,10 @@ bot.callbackQuery("open_budget", async (ctx) => {
 // Matnli buyruqlar: Ob-havo va Valyuta kalkulyatori
 bot.on("message:text", async (ctx) => {
   const text = ctx.message.text.trim();
+  const lowerText = text.toLowerCase();
   
   // Valyuta kalkulyatorini tekshirish
-  const calcMatch = text.toLowerCase().match(/^(\d+(\.\d+)?)\s*(usd|dollar|eur|euro|rub|som|so'm)?$/);
+  const calcMatch = lowerText.match(/^(\d+(\.\d+)?)\s*(usd|dollar|eur|euro|rub|som|so'm)?$/);
   if (calcMatch) {
     const amount = parseFloat(calcMatch[1]);
     const currency = calcMatch[3] || "usd";
@@ -127,20 +146,30 @@ bot.on("message:text", async (ctx) => {
     }
   }
 
-  // Ob-havo qidiruvi
-  if (text.length > 2 && text.length < 20 && !calcMatch) {
+  // Aqlli Ob-havo qidiruvi
+  if (text.length > 2 && text.length < 25 && !calcMatch) {
     try {
+      // Shahar nomini to'g'rilash (masalan: farg'ona -> Fergana)
+      const searchQuery = cityMap[lowerText] || text;
       const apiKey = "a4b5749f96b270034a7eb6d95368a183";
-      const res = await axios.get(`https://api.openweathermap.org/data/2.5/weather?q=${text}&units=metric&appid=${apiKey}`);
-      const temp = res.data.main.temp;
+      
+      const res = await axios.get(`https://api.openweathermap.org/data/2.5/weather?q=${searchQuery}&units=metric&appid=${apiKey}`);
+      const temp = Math.round(res.data.main.temp);
+      const humidity = res.data.main.humidity;
+      const wind = res.data.wind.speed;
       const city = res.data.name;
 
-      await ctx.reply(`⛅️ **${city} shahri ob-havosi:**\n\n🌡 Harorat: **${temp}°C**`, { parse_mode: "Markdown" });
+      let msg = `⛅️ **${city} shahri ob-havosi:**\n\n`;
+      msg += `🌡 Harorat: **${temp > 0 ? "+" : ""}${temp}°C**\n`;
+      msg += `💧 Namlik: **${humidity}%**\n`;
+      msg += `💨 Shamol tezligi: **${wind} m/s**`;
+
+      await ctx.reply(msg, { parse_mode: "Markdown", reply_markup: getMainMenu() });
     } catch (e) {
-      // Shahar topilmasa indamaydi
+      await ctx.reply(`❌ **"${text}"** shahri topilmadi. Shahar nomini qayta tekshirib yozib ko'ring (Masalan: *Farg'ona*, *Toshkent*, *Navoiy*).`, { parse_mode: "Markdown" });
     }
   }
 });
 
-console.log("Bot qayta yuklandi va ishga tushdi!");
+console.log("Ob-havo qidiruvi tuzatildi!");
 bot.start();
