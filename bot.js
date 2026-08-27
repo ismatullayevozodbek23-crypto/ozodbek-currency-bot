@@ -99,3 +99,9 @@ bot.callbackQuery("all_rates", async (ctx) => {
 
 console.log("Ozodbekning yangi boti ishga tushdi!");
 bot.start();
+const express = require('express');
+const app = express();
+const port = process.env.PORT || 3000;
+
+app.get('/', (req, res) => res.send('Bot ishlayapti!'));
+app.listen(port, () => console.log(`Server ${port}-portda ishlamoqda`));
