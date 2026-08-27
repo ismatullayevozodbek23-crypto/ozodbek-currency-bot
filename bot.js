@@ -2,29 +2,28 @@ const { Bot, InlineKeyboard } = require("grammy");
 const axios = require("axios");
 const express = require("express");
 
-// Express veb-server (Render uchun)
 const app = express();
 const port = process.env.PORT || 3000;
 app.get("/", (req, res) => res.send("Bot 24/7 rejimda ishlayapti!"));
-app.listen(port, () => console.log(`Server ${port}-portda ishlamoqda`));
+app.listen(port, () => console.log(`Server ishlamoqda`));
 
-// Botni ishga tushirish
 const bot = new Bot("8927006209:AAEq35XwstN9ywwBlRBMcRtrQ9j337mNfSU");
 
-// Asosiy tugmalar paneli
+// Kengaytirilgan Asosiy menyu
 function getMainMenu() {
   return new InlineKeyboard()
-    .text("💵 Mb Kurslari", "mb_rates")
-    .text("🪙 Kripto Kurslar", "crypto_rates")
+    .text("💵 Valyuta", "mb_rates")
+    .text("🪙 Kripto", "crypto_rates")
     .row()
-    .text("📊 Statistika", "stats")
-    .text("🧮 Kalkulyator Haqida", "calc_info");
+    .text("🕌 Namoz Vaqtlari", "prayer_times")
+    .text("⛅️ Ob-havo", "weather_info")
+    .row()
+    .text("🗳 Open Budget Yordamchi", "open_budget");
 }
 
-// /start buyrug'i
 bot.command("start", async (ctx) => {
   await ctx.reply(
-    `👋 **Xush kelibsiz!**\n\nBu bot orqali rasmiy valyuta kurslari, kriptovalyutalar va tezkor kalkulyatordan foydalanishingiz mumkin.\n\n👇 Quyidagi menyudan birini tanlang yoki **100 usd** deb yozing:`,
+    `👋 **Xush kelibsiz!**\n\nBu bot orqali nafaqat valyuta, balki ob-havo, namoz vaqtlari va Open Budget haqida ma'lumot olishingiz mumkin.\n\n👇 Quyidagi menyudan birini tanlang:`,
     { parse_mode: "Markdown", reply_markup: getMainMenu() }
   );
 });
@@ -36,105 +35,113 @@ bot.callbackQuery("mb_rates", async (ctx) => {
     const data = response.data;
     const usd = data.find((c) => c.Ccy === "USD");
     const eur = data.find((c) => c.Ccy === "EUR");
-    const rub = data.find((c) => c.Ccy === "RUB");
 
     let msg = `🏛 **Markaziy Bank rasmiy kurslari:**\n\n`;
     msg += `🇺🇸 **1 USD** = ${usd.Rate} so'm (${usd.Diff > 0 ? "+" : ""}${usd.Diff})\n`;
-    msg += `🇪🇺 **1 EUR** = ${eur.Rate} so'm (${eur.Diff > 0 ? "+" : ""}${eur.Diff})\n`;
-    msg += `🇷🇺 **1 RUB** = ${rub.Rate} so'm (${rub.Diff > 0 ? "+" : ""}${rub.Diff})\n\n`;
-    msg += `✍️ *Valyuta hisoblash uchun ixtiyoriy summani yozing (Masalan: 500 usd)*`;
-
+    msg += `🇪🇺 **1 EUR** = ${eur.Rate} so'm (${eur.Diff > 0 ? "+" : ""}${eur.Diff})\n\n`;
+    msg += `✍️ *Maslahat: 100 usd yoki 50 euro deb yozib kalkulyatordan foydalaning!*`;
     await ctx.reply(msg, { parse_mode: "Markdown", reply_markup: getMainMenu() });
   } catch (err) {
-    await ctx.reply("❌ Valyuta kurslarini olishda xatolik yuz berdi.");
+    await ctx.reply("❌ Xatolik yuz berdi.");
   }
 });
 
-// 2. Kriptovalyuta kurslari (Alohida xavfsiz so'rovlar)
+// 2. Kriptovalyuta
 bot.callbackQuery("crypto_rates", async (ctx) => {
-  let btc = "Mavjud emas", eth = "Mavjud emas", bnb = "Mavjud emas";
-
+  let btc = "-", eth = "-";
   try {
     const res = await axios.get("https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT");
     btc = parseFloat(res.data.price).toLocaleString("en-US", { maximumFractionDigits: 2 });
   } catch (e) {}
-
   try {
     const res = await axios.get("https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT");
     eth = parseFloat(res.data.price).toLocaleString("en-US", { maximumFractionDigits: 2 });
   } catch (e) {}
 
-  try {
-    const res = await axios.get("https://api.binance.com/api/v3/ticker/price?symbol=BNBUSDT");
-    bnb = parseFloat(res.data.price).toLocaleString("en-US", { maximumFractionDigits: 2 });
-  } catch (e) {}
-
-  let msg = `🪙 **Real vaqtdagi Kriptovalyuta kurslari ($):**\n\n`;
-  msg += `🪙 **Bitcoin (BTC):** $${btc}\n`;
-  msg += `🔷 **Ethereum (ETH):** $${eth}\n`;
-  msg += `🟡 **Binance Coin (BNB):** $${bnb}\n`;
-  msg += `💵 **Tether (USDT):** $1.00\n`;
-
-  await ctx.reply(msg, { parse_mode: "Markdown", reply_markup: getMainMenu() });
+  await ctx.reply(`🪙 **Kripto ($):**\n\n🪙 **BTC:** $${btc}\n🔷 **ETH:** $${eth}`, { parse_mode: "Markdown", reply_markup: getMainMenu() });
 });
 
-// 3. Valyuta statistikasi
-bot.callbackQuery("stats", async (ctx) => {
+// 3. Namoz Vaqtlari (Islom.uz API)
+bot.callbackQuery("prayer_times", async (ctx) => {
   try {
-    const response = await axios.get("https://cbu.uz/uz/arkhiv-kursov-valyut/json/");
-    const usd = response.data.find((c) => c.Ccy === "USD");
-    
-    let state = usd.Diff > 0 ? "📈 O'smoqda (O'sish tendensiyasi)" : "📉 Tushmoqda";
-    let msg = `📊 **AQSH Dollari Dinamikasi:**\n\n`;
-    msg += `📌 Bugungi kurs: **${usd.Rate} so'm**\n`;
-    msg += `🔄 Oxirgi o'zgarish: **${usd.Diff} so'm**\n`;
-    msg += `Holat: **${state}**\n`;
-    msg += `Sana: **${usd.Date}**`;
+    // Navoiy shahri misolida olingan (boshqa hudud ham qilish mumkin)
+    const res = await axios.get("https://islomapi.uz/api/present/day?region=Navoiy");
+    const data = res.data;
+
+    let msg = `🕌 **Namoz Vaqtlari (Navoiy hududi uchun):**\n📅 Sana: ${data.date}\n\n`;
+    msg += `🌅 Bomdod: **${data.times.tong_saharlik}**\n`;
+    msg += `🌇 Quyosh: **${data.times.quyosh}**\n`;
+    msg += `🏞 Peshin: **${data.times.peshin}**\n`;
+    msg += `🌆 Asr: **${data.times.asr}**\n`;
+    msg += `🏙 Shom: **${data.times.shom_iftor}**\n`;
+    msg += `🌃 Xufton: **${data.times.hufton}**`;
 
     await ctx.reply(msg, { parse_mode: "Markdown", reply_markup: getMainMenu() });
-  } catch (err) {
-    await ctx.reply("❌ Statistikani yuklab bo'lmadi.");
+  } catch (e) {
+    await ctx.reply("❌ Namoz vaqtlarini olishda xatolik.");
   }
 });
 
-// Kalkulyator ko'rsatmasi
-bot.callbackQuery("calc_info", async (ctx) => {
+// 4. Ob-havo yordamchisi
+bot.callbackQuery("weather_info", async (ctx) => {
   await ctx.reply(
-    "🧮 **Valyuta kalkulyatori qanday ishlaydi?**\n\nSiz botga shunchaki matn ko'rinishida qiymat yozasiz:\n\n• `100 usd` -> So'mga o'giradi\n• `50 euro` -> So'mga o'giradi\n• `500000 som` -> Dollarga o'giradi",
+    "⛅️ **Ob-havo ma'lumotini olish uchun shahringiz nomini inglizcha yoki lotincha yozib yuboring.**\n\nMasalan:\n• `Tashkent`\n• `Navoi`\n• `Samarkand`",
     { parse_mode: "Markdown", reply_markup: getMainMenu() }
   );
 });
 
-// Matnli kalkulyator funksiyasi (Auto Convert)
+// 5. Open Budget Yordamchi
+bot.callbackQuery("open_budget", async (ctx) => {
+  let msg = `🗳 **Ochiq Byudjet (Open Budget) bo'yicha maslahatlar:**\n\n`;
+  msg += `1️⃣ **Qanday ovoz beriladi?** - Maxsus Open Budget portali orqali SMS kod tasdiqlanadi.\n`;
+  msg += `2️⃣ **E'tibor bering:** Bir raqamdan faqat bir marta ovoz berish mumkin.\n`;
+  msg += `3️⃣ **Yordam:** O'z qishlog'ingiz yoki mahallangiz loyihasini botlar va Telegram guruhlar orqali tarqating!\n\n`;
+  msg += `🔗 Rasmiy sayt: [openbudget.uz](https://openbudget.uz)`;
+  
+  await ctx.reply(msg, { parse_mode: "Markdown", disable_web_page_preview: true, reply_markup: getMainMenu() });
+});
+
+// Matnli buyruqlar: Ob-havo va Valyuta kalkulyatori
 bot.on("message:text", async (ctx) => {
-  const text = ctx.message.text.trim().toLowerCase();
-  const match = text.match(/^(\d+(\.\d+)?)\s*(usd|dollar|eur|euro|rub|som|so'm)?$/);
-
-  if (match) {
-    const amount = parseFloat(match[1]);
-    const currency = match[3] || "usd";
-
+  const text = ctx.message.text.trim();
+  
+  // Valyuta kalkulyatorini tekshirish
+  const calcMatch = text.toLowerCase().match(/^(\d+(\.\d+)?)\s*(usd|dollar|eur|euro|rub|som|so'm)?$/);
+  if (calcMatch) {
+    const amount = parseFloat(calcMatch[1]);
+    const currency = calcMatch[3] || "usd";
     try {
       const response = await axios.get("https://cbu.uz/uz/arkhiv-kursov-valyut/json/");
-      const data = response.data;
-      const usdRate = parseFloat(data.find((c) => c.Ccy === "USD").Rate);
-      const eurRate = parseFloat(data.find((c) => c.Ccy === "EUR").Rate);
+      const usdRate = parseFloat(response.data.find((c) => c.Ccy === "USD").Rate);
+      const eurRate = parseFloat(response.data.find((c) => c.Ccy === "EUR").Rate);
 
       if (currency === "usd" || currency === "dollar") {
-        const total = (amount * usdRate).toLocaleString();
-        return ctx.reply(`💵 **${amount} USD** = **${total} so'm**`, { parse_mode: "Markdown" });
+        return ctx.reply(`💵 **${amount} USD** = **${(amount * usdRate).toLocaleString()} so'm**`, { parse_mode: "Markdown" });
       } else if (currency === "eur" || currency === "euro") {
-        const total = (amount * eurRate).toLocaleString();
-        return ctx.reply(`💶 **${amount} EUR** = **${total} so'm**`, { parse_mode: "Markdown" });
+        return ctx.reply(`💶 **${amount} EUR** = **${(amount * eurRate).toLocaleString()} so'm**`, { parse_mode: "Markdown" });
       } else if (currency === "som" || currency === "so'm") {
-        const total = (amount / usdRate).toFixed(2);
-        return ctx.reply(`🇺🇿 **${amount.toLocaleString()} so'm** = **${total} USD**`, { parse_mode: "Markdown" });
+        return ctx.reply(`🇺🇿 **${amount.toLocaleString()} so'm** = **${(amount / usdRate).toFixed(2)} USD**`, { parse_mode: "Markdown" });
       }
     } catch (e) {
       return ctx.reply("❌ Hisoblashda xatolik yuz berdi.");
     }
   }
+
+  // Agar kalkulyator bo'lmasa, ob-havo ekanligini tekshiramiz (OpenWeatherMap tekin API)
+  if (text.length > 2 && text.length < 20 && !calcMatch) {
+    try {
+      const apiKey = "a4b5749f96b270034a7eb6d95368a183"; // Test uchun umumiy API kalit
+      const res = await axios.get(`https://api.openweathermap.org/data/2.5/weather?q=${text}&units=metric&appid=${apiKey}&lang=ru`);
+      const temp = res.data.main.temp;
+      const desc = res.data.weather[0].description;
+      const city = res.data.name;
+
+      await ctx.reply(`⛅️ **${city} shahri ob-havosi:**\n\n🌡 Harorat: **${temp}°C**\n☁️ Holat: **${desc}**`, { parse_mode: "Markdown" });
+    } catch (e) {
+      // Agar shahar topilmasa
+    }
+  }
 });
 
-console.log("Ozodbekning yangilangan boti ishga tushdi!");
+console.log("Kengaytirilgan bot ishga tushdi!");
 bot.start();
