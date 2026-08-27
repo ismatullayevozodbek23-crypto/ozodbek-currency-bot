@@ -9,7 +9,7 @@ app.listen(port, () => console.log(`Server ishlamoqda`));
 
 const bot = new Bot("8927006209:AAEq35XwstN9ywwBlRBMcRtrQ9j337mNfSU");
 
-// Shahar nomlarini API formatiga o'g'irish lug'ati
+// Shahar nomlarini moslashtirish lug'ati
 const cityMap = {
   "farg'ona": "Fergana",
   "fargona": "Fergana",
@@ -29,9 +29,7 @@ const cityMap = {
   "karshi": "Karshi",
   "nukus": "Nukus",
   "urganch": "Urgench",
-  "urgench": "Urgench",
   "jizzax": "Jizzakh",
-  "jizzakh": "Jizzakh",
   "guliston": "Guliston",
   "termez": "Termez",
   "termiz": "Termez"
@@ -88,7 +86,7 @@ bot.callbackQuery("crypto_rates", async (ctx) => {
   await ctx.reply(`🪙 **Kripto ($):**\n\n🪙 **BTC:** $${btc}\n🔷 **ETH:** $${eth}`, { parse_mode: "Markdown", reply_markup: getMainMenu() });
 });
 
-// 3. Namoz Vaqtlari (100% ishlaydigan Aladhan API)
+// 3. Namoz Vaqtlari
 bot.callbackQuery("prayer_times", async (ctx) => {
   try {
     const res = await axios.get("https://api.aladhan.com/v1/timingsByCity?city=Navoi&country=Uzbekistan&method=3");
@@ -112,7 +110,7 @@ bot.callbackQuery("prayer_times", async (ctx) => {
 // 4. Ob-havo ko'rsatmasi
 bot.callbackQuery("weather_info", async (ctx) => {
   await ctx.reply(
-    "⛅️ **Ob-havo ma'lumotini olish uchun shahringiz nomini yozing:**\n\nMasalan:\n• `Andijon`\n• `Farg'ona`\n• `Navoiy`\n• `Toshkent`",
+    "⛅️ **Ob-havo ma'lumotini olish uchun shahringiz nomini yozing:**\n\nMasalan:\n• `Namangan`\n• `Andijon`\n• `Farg'ona`\n• `Navoiy`\n• `Toshkent`",
     { parse_mode: "Markdown", reply_markup: getMainMenu() }
   );
 });
@@ -155,29 +153,28 @@ bot.on("message:text", async (ctx) => {
     }
   }
 
-  // Ob-havo qidiruvi
+  // 100% Ishlaydigan Ob-havo API (wttr.in)
   if (text.length >= 3 && text.length < 25 && !calcMatch) {
     try {
       const searchQuery = cityMap[lowerText] || text;
-      const apiKey = "a4b5749f96b270034a7eb6d95368a183";
+      const res = await axios.get(`https://wttr.in/${encodeURIComponent(searchQuery)}?format=j1`);
       
-      const res = await axios.get(`https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(searchQuery)}&units=metric&appid=${apiKey}`);
-      const temp = Math.round(res.data.main.temp);
-      const humidity = res.data.main.humidity;
-      const wind = res.data.wind.speed;
-      const city = res.data.name;
+      const current = res.data.current_condition[0];
+      const temp = current.temp_C;
+      const humidity = current.humidity;
+      const wind = current.windspeedKmph;
 
-      let msg = `⛅️ **${city} shahri ob-havosi:**\n\n`;
+      let msg = `⛅️ **${text.toUpperCase()} shahri ob-havosi:**\n\n`;
       msg += `🌡 Harorat: **${temp > 0 ? "+" : ""}${temp}°C**\n`;
       msg += `💧 Namlik: **${humidity}%**\n`;
-      msg += `💨 Shamol tezligi: **${wind} m/s**`;
+      msg += `💨 Shamol: **${wind} km/soat**`;
 
       await ctx.reply(msg, { parse_mode: "Markdown", reply_markup: getMainMenu() });
     } catch (e) {
-      await ctx.reply(`❌ **"${text}"** shahri topilmadi. Shahar nomini qayta tekshirib yozib ko'ring (Masalan: *Andijon*, *Farg'ona*, *Navoiy*, *Toshkent*).`, { parse_mode: "Markdown" });
+      await ctx.reply(`❌ **"${text}"** shahri bo'yicha ma'lumot topilmadi. Qayta tekshirib ko'ring.`, { parse_mode: "Markdown" });
     }
   }
 });
 
-console.log("Shahar qidiruvi yangilandi!");
+console.log("Ob-havo servisi to'liq yangilandi!");
 bot.start();
